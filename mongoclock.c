@@ -44,7 +44,7 @@ char *argv0;
 static void
 usage(void)
 {
-	fprintf(stderr, "usage: %s\n", argv0);
+	fprintf(stderr, "usage: %s [-s]\n", argv0);
 	exit(1);
 }
 

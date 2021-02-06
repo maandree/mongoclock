@@ -2,7 +2,7 @@ NAME
 	mongoclock - Just a humongous clock for the terminal
 
 SYNOPSIS
-	mongoclock
+	mongoclock [-s]
 
 DESCRIPTION
 	Type mongoclock in the terminal and it will either,
@@ -22,7 +22,7 @@ DESCRIPTION
 
 OPTIONS
 	The mongoclock utility shall conform to the Base
-	Definitions volume of POSIX.1‐2008, Section 12.2,
+	Definitions volume of POSIX.1-2008, Section 12.2,
 	Utility Syntax Guidelines.
 
 	The following options shall be supported:
@@ -44,4 +44,4 @@ RATIONALE
 	you are in a public place.
 
 SEE ALSO
-	watch(1)
+	mongotimer(1), watch(1)
