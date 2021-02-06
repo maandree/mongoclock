@@ -11,7 +11,7 @@ DIGITS =\
 all: mongoclock
 
 mongoclock: mongoclock.o
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ mongoclock.o $(LDFLAGS)
 
 mongoclock.o: mongoclock.c arg.h $(DIGITS)
 	$(CC) -c -o $@ mongoclock.c $(CPPFLAGS) $(CFLAGS)
