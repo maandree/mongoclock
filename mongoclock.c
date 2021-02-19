@@ -135,11 +135,29 @@ display_time(int timerfd)
 		r = adjtimex(&timex);
 		if (r == -1)
 			goto fail;
-		now = localtime(&timex.time.tv_sec);
-		if (now == NULL)
-			goto fail;
-		if (r == TIME_OOP)
+		if (timex.time.tv_sec % (24 * 60 * 60) == 0) {
+			if (r == TIME_INS) {
+				timex.time.tv_sec -= 1;
+				now = localtime(&timex.time.tv_sec);
+				if (!now)
+					goto fail;
+				now->tm_sec += 1;
+				goto now_checked;
+			} else if (r == TIME_DEL) {
+				timex.time.tv_sec += 1;
+				now = localtime(&timex.time.tv_sec);
+			} else {
+				now = localtime(&timex.time.tv_sec);
+			}
+		} else if (r == TIME_OOP) {
+			now = localtime(&timex.time.tv_sec);
 			now->tm_sec += 1;
+		} else {
+			now = localtime(&timex.time.tv_sec);
+		}
+		if (!now)
+			goto fail;
+	now_checked:
 #else
 		now_ = time(NULL);
 		if (now_ == -1)
