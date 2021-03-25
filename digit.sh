@@ -204,7 +204,7 @@ digit() {
 
 printf 'static const char *mongo_%s[] = {\n' "$1"
 digit "$1" | \
-    sed -e 's/X/ /g' -e 's/\[/\\033\[7m /g' -e 's/\]/\\033\[m /g' | \
+    sed -e 's/X/ /g' -e 's/\[/\\033\[7m /g' -e 's/\]/ \\033\[m/g' | \
     sed -e 's/^/"/' -e 's/$/",/' | \
     sed '$s/,$//'
 printf '};\n'
