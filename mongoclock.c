@@ -2,11 +2,13 @@
 #include <sys/ioctl.h>
 #include <sys/timerfd.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <termios.h>
 #include <time.h>
 #include <unistd.h>
 #ifdef USE_ADJTIMEX
@@ -40,6 +42,7 @@ static volatile sig_atomic_t caught_sigterm = 0;
 static volatile sig_atomic_t caught_sigwinch = 1;
 
 char *argv0;
+static int exit_value = 0;
 
 static void
 usage(void)
@@ -59,6 +62,22 @@ static void
 sigwinch(int signo)
 {
 	caught_sigwinch = 1;
+	(void) signo;
+}
+
+static void
+sigio(int signo)
+{
+	char c;
+	ssize_t r;
+	r = read(STDIN_FILENO, &c, 1);
+	if (r <= 0) {
+		if (r < 0)
+			exit_value = 1;
+		caught_sigterm = 1;
+	} else if (c == 'q') {
+		caught_sigterm = 1;
+	}
 	(void) signo;
 }
 
@@ -250,10 +269,12 @@ fail:
 int
 main(int argc, char *argv[])
 {
-	int timerfd = -1;
-	int posixtime = 0;
+	int timerfd = -1, old_flags = -1, tcset = 0;
+	int posixtime = 0, old_sig = 0, owner_set = 0;
 	struct itimerspec itimerspec;
 	struct sigaction sigact;
+	struct f_owner_ex old_owner, new_owner;
+	struct termios stty, saved_stty;
 
 	ARGBEGIN {
 	case 's':
@@ -290,18 +311,55 @@ main(int argc, char *argv[])
 	sigact.sa_handler = sigwinch;
 	sigaction(SIGWINCH, &sigact, NULL);
 
+	sigact.sa_handler = sigio;
+	sigaction(SIGIO, &sigact, NULL);
+	sigaction(SIGURG, &sigact, NULL);
+
+	if (fcntl(STDIN_FILENO, F_GETOWN_EX, &old_owner))
+		goto fail;
+	memset(&new_owner, 0, sizeof(new_owner));
+	new_owner.type = F_OWNER_PID;
+	new_owner.pid = getpid();
+	if (fcntl(STDIN_FILENO, F_SETOWN_EX, &new_owner))
+		goto fail;
+	owner_set = 1;
+	old_flags = fcntl(STDIN_FILENO, F_GETFL);
+	fcntl(STDIN_FILENO, F_SETFL, old_flags | FASYNC | O_NONBLOCK);
+	fcntl(STDIN_FILENO, F_GETSIG, &old_sig);
+	if (old_sig)
+		fcntl(STDIN_FILENO, F_SETSIG, 0);
+
+	if (!tcgetattr(STDIN_FILENO, &stty)) {
+		saved_stty = stty;
+		stty.c_lflag &= (tcflag_t)~(ECHO | ICANON);
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &stty);
+		tcset = 1;
+	}
+
 	if (posixtime ? display_posixtime(timerfd) : display_time(timerfd))
 		goto fail;
 
 	fprintf(stdout, "\033[?25h\n\033[?1049l");
 	fflush(stdout);
+	fcntl(STDIN_FILENO, F_SETOWN_EX, &old_owner);
+	fcntl(STDIN_FILENO, F_SETFL, old_flags);
+	fcntl(STDIN_FILENO, F_SETSIG, old_sig);
+	tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
 	close(timerfd);
-	return 0;
+	return exit_value;
 
 fail:
 	perror(argv0 ? argv0 : "mongoclock");
 	fprintf(stdout, "\033[?25h\n\033[?1049l");
 	fflush(stdout);
+	if (owner_set)
+		fcntl(STDIN_FILENO, F_SETOWN_EX, &old_owner);
+	if (old_flags != -1)
+		fcntl(STDIN_FILENO, F_SETFL, old_flags);
+	if (old_sig)
+		fcntl(STDIN_FILENO, F_SETSIG, old_sig);
+	if (tcset)
+		tcsetattr(STDIN_FILENO, TCSAFLUSH, &saved_stty);
 	if (timerfd >= 0)
 		close(timerfd);
 	return 1;
