@@ -1,6 +1,8 @@
-PREFIX    = /usr/local
+PREFIX    = /usr
 MANPREFIX = $(PREFIX)/share/man
 
+CC = cc
+
 CPPFLAGS = -D_DEFAULT_SOURCE -D_BSD_SOURCE -D_XOPEN_SOURCE=700 -D_GNU_SOURCE -DUSE_ADJTIMEX
-CFLAGS   = -std=c99 -Wall -Wextra -O2
+CFLAGS   = -std=c99 -Wall -O2
 LDFLAGS  = -s

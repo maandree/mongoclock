@@ -8,6 +8,7 @@ DIGITS =\
 	mongo_5.h mongo_6.h mongo_7.h mongo_8.h mongo_9.h \
 	mongo_c.h
 
+
 all: mongoclock
 
 mongoclock: mongoclock.o
@@ -51,18 +52,15 @@ mongo_c.h: digit.sh
 
 install: mongoclock
 	mkdir -p -- "$(DESTDIR)$(PREFIX)/bin"
-	mkdir -p -- "$(DESTDIR)$(PREFIX)/share/licenses/mongoclock"
 	mkdir -p -- "$(DESTDIR)$(MANPREFIX)/man1"
 	cp -- mongoclock "$(DESTDIR)$(PREFIX)/bin/"
-	cp -- LICENSE "$(DESTDIR)$(PREFIX)/share/licenses/mongoclock/"
 	cp -- mongoclock.1 "$(DESTDIR)$(MANPREFIX)/man1/"
 
 uninstall:
 	-rm -- "$(DESTDIR)$(PREFIX)/bin/mongoclock"
 	-rm -- "$(DESTDIR)$(MANPREFIX)/man1/mongoclock.1"
-	-rm -r -- "$(DESTDIR)$(PREFIX)/share/licenses/mongoclock"
 
 clean:
-	-rm -f -- *.o mongoclock mongo_*.h
+	-rm -f -- *.o *.su mongoclock mongo_*.h
 
 .PHONY: all install uninstall clean
